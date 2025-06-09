@@ -1,0 +1,481 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyNWN3tfyTKNly+fAuzmj/6t",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/omkadam78/Bladder-cancer-project/blob/main/Task%201\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "G9ljiq661ubZ"
+      },
+      "outputs": [],
+      "source": [
+        "import zipfile\n",
+        "import os\n",
+        "\n",
+        "with zipfile.ZipFile(\"DeepScope.zip\", 'r') as zip_ref:\n",
+        "    zip_ref.extractall(\"/content/DeepScope\")\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ... your previous code remains unchanged ...\n",
+        "\n",
+        "# Set dataset path\n",
+        "dataset_path = \"/content/DeepScope/DeepScope\"\n",
+        "output_path = os.path.join(dataset_path, \"gradcam_outputs\")\n",
+        "os.makedirs(output_path, exist_ok=True)\n",
+        "\n",
+        "splits = ['train', 'test', 'validate']  # process train, test and validate folders\n",
+        "\n",
+        "for split in splits:\n",
+        "    split_path = os.path.join(dataset_path, split)\n",
+        "    for root, _, files in os.walk(split_path):\n",
+        "        for fname in files:\n",
+        "            if fname.lower().endswith(('.jpg', '.jpeg', '.png')):\n",
+        "                img_path = os.path.join(root, fname)\n",
+        "                img = Image.open(img_path).convert('RGB')\n",
+        "                img_tensor = transform(img)\n",
+        "\n",
+        "                cam = generate_gradcam(img_tensor)\n",
+        "\n",
+        "                # Create heatmap and overlay\n",
+        "                heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)\n",
+        "                original = cv2.resize(np.array(img), (224, 224))\n",
+        "                overlay = cv2.addWeighted(original, 0.6, heatmap, 0.4, 0)\n",
+        "\n",
+        "                # Save result\n",
+        "                relative_dir = os.path.relpath(root, dataset_path)\n",
+        "                save_dir = os.path.join(output_path, relative_dir)\n",
+        "                os.makedirs(save_dir, exist_ok=True)\n",
+        "                save_path = os.path.join(save_dir, fname)\n",
+        "                cv2.imwrite(save_path, overlay)\n",
+        "\n",
+        "print(\"✅ Grad-CAM outputs saved in:\", output_path)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "TTHGHtLfTxih",
+        "outputId": "c8ab3113-41c0-44ff-de05-aefd6788656d"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "/usr/local/lib/python3.11/dist-packages/torch/nn/modules/module.py:1830: FutureWarning: Using a non-full backward hook when the forward contains multiple autograd Nodes is deprecated and will be removed in future versions. This hook will be missing some grad_input. Please use register_full_backward_hook to get the documented behavior.\n",
+            "  self._maybe_warn_non_full_backward_hook(args, result, grad_fn)\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "✅ Grad-CAM outputs saved in: /content/DeepScope/DeepScope/gradcam_outputs\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from IPython.display import display, HTML\n",
+        "from PIL import Image\n",
+        "import glob\n",
+        "\n",
+        "# Show a few saved Grad-CAM outputs\n",
+        "output_images = glob.glob(f\"{output_path}/**/*.jpg\", recursive=True)\n",
+        "\n",
+        "print(f\"Showing {min(5, len(output_images))} Grad-CAM visualizations:\")\n",
+        "\n",
+        "html = \"\"\n",
+        "for img_path in output_images[:5]:  # Change number here to view more\n",
+        "    html += f'<div style=\"margin:10px; display:inline-block;\"><img src=\"{img_path}\" width=\"224\"><br>{img_path.split(\"/\")[-1]}</div>'\n",
+        "\n",
+        "display(HTML(html))\n"
+      ],
+      "metadata": {
+        "colab": {
+          "resources": {
+            "http://localhost:8080/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_%20(98).jpg": {
+              "data": "",
+              "ok": false,
+              "headers": [
+                [
+                  "content-length",
+                  "0"
+                ]
+              ],
+              "status": 404,
+              "status_text": ""
+            },
+            "http://localhost:8080/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_%20(122).jpg": {
+              "data": "",
+              "ok": false,
+              "headers": [
+                [
+                  "content-length",
+                  "0"
+                ]
+              ],
+              "status": 404,
+              "status_text": ""
+            },
+            "http://localhost:8080/content/DeepScope/DeepScope/gradcam_outputs/test/test_esophagitis_%20(78).jpg": {
+              "data": "",
+              "ok": false,
+              "headers": [
+                [
+                  "content-length",
+                  "0"
+                ]
+              ],
+              "status": 404,
+              "status_text": ""
+            },
+            "http://localhost:8080/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_%20(111).jpg": {
+              "data": "",
+              "ok": false,
+              "headers": [
+                [
+                  "content-length",
+                  "0"
+                ]
+              ],
+              "status": 404,
+              "status_text": ""
+            },
+            "http://localhost:8080/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_%20(182).jpg": {
+              "data": "",
+              "ok": false,
+              "headers": [
+                [
+                  "content-length",
+                  "0"
+                ]
+              ],
+              "status": 404,
+              "status_text": ""
+            }
+          },
+          "base_uri": "https://localhost:8080/",
+          "height": 149
+        },
+        "id": "Smr4Z-beXIni",
+        "outputId": "80e8748c-ca73-450e-9536-883a6a4c28a9"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Showing 5 Grad-CAM visualizations:\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ],
+            "text/html": [
+              "<div style=\"margin:10px; display:inline-block;\"><img src=\"/content/DeepScope/DeepScope/gradcam_outputs/test/test_esophagitis_ (78).jpg\" width=\"224\"><br>test_esophagitis_ (78).jpg</div><div style=\"margin:10px; display:inline-block;\"><img src=\"/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_ (111).jpg\" width=\"224\"><br>test_polyps_ (111).jpg</div><div style=\"margin:10px; display:inline-block;\"><img src=\"/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_ (98).jpg\" width=\"224\"><br>test_polyps_ (98).jpg</div><div style=\"margin:10px; display:inline-block;\"><img src=\"/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_ (182).jpg\" width=\"224\"><br>test_polyps_ (182).jpg</div><div style=\"margin:10px; display:inline-block;\"><img src=\"/content/DeepScope/DeepScope/gradcam_outputs/test/2_polyps/test_polyps_ (122).jpg\" width=\"224\"><br>test_polyps_ (122).jpg</div>"
+            ]
+          },
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import shutil\n",
+        "\n",
+        "shutil.make_archive(\"/content/GradCAM_Results\", 'zip', output_path)\n",
+        "print(\"✅ Zipped file created: GradCAM_Results.zip\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 193
+        },
+        "id": "d8pHVVvlXLvR",
+        "outputId": "a76f652f-6a75-4edf-81cd-97c1f323657e"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "NameError",
+          "evalue": "name 'output_path' is not defined",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-1-30f7ed6d00a8>\u001b[0m in \u001b[0;36m<cell line: 0>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mshutil\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      2\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 3\u001b[0;31m \u001b[0mshutil\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmake_archive\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"/content/GradCAM_Results\"\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m'zip'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0moutput_path\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      4\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"✅ Zipped file created: GradCAM_Results.zip\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mNameError\u001b[0m: name 'output_path' is not defined"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import files\n",
+        "files.download(\"/content/GradCAM_Results.zip\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 17
+        },
+        "id": "4NW72br5XRFb",
+        "outputId": "61a9da9c-9bf6-4684-8c34-291e401ffb6f"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ],
+            "application/javascript": [
+              "\n",
+              "    async function download(id, filename, size) {\n",
+              "      if (!google.colab.kernel.accessAllowed) {\n",
+              "        return;\n",
+              "      }\n",
+              "      const div = document.createElement('div');\n",
+              "      const label = document.createElement('label');\n",
+              "      label.textContent = `Downloading \"${filename}\": `;\n",
+              "      div.appendChild(label);\n",
+              "      const progress = document.createElement('progress');\n",
+              "      progress.max = size;\n",
+              "      div.appendChild(progress);\n",
+              "      document.body.appendChild(div);\n",
+              "\n",
+              "      const buffers = [];\n",
+              "      let downloaded = 0;\n",
+              "\n",
+              "      const channel = await google.colab.kernel.comms.open(id);\n",
+              "      // Send a message to notify the kernel that we're ready.\n",
+              "      channel.send({})\n",
+              "\n",
+              "      for await (const message of channel.messages) {\n",
+              "        // Send a message to notify the kernel that we're ready.\n",
+              "        channel.send({})\n",
+              "        if (message.buffers) {\n",
+              "          for (const buffer of message.buffers) {\n",
+              "            buffers.push(buffer);\n",
+              "            downloaded += buffer.byteLength;\n",
+              "            progress.value = downloaded;\n",
+              "          }\n",
+              "        }\n",
+              "      }\n",
+              "      const blob = new Blob(buffers, {type: 'application/binary'});\n",
+              "      const a = document.createElement('a');\n",
+              "      a.href = window.URL.createObjectURL(blob);\n",
+              "      a.download = filename;\n",
+              "      div.appendChild(a);\n",
+              "      a.click();\n",
+              "      div.remove();\n",
+              "    }\n",
+              "  "
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ],
+            "application/javascript": [
+              "download(\"download_81d6f97a-992c-4690-8114-01f022b47852\", \"GradCAM_Results.zip\", 1778961)"
+            ]
+          },
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install fpdf\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "aW-YXwCIXgGi",
+        "outputId": "cb66d6ea-6124-4c99-ac2d-b55f4e160f1a"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Collecting fpdf\n",
+            "  Downloading fpdf-1.7.2.tar.gz (39 kB)\n",
+            "  Preparing metadata (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "Building wheels for collected packages: fpdf\n",
+            "  Building wheel for fpdf (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for fpdf: filename=fpdf-1.7.2-py2.py3-none-any.whl size=40704 sha256=9a6ab81d584174cf6dc6ac7e25074a12dc71047a59740d6e18a3798ce35d6ad7\n",
+            "  Stored in directory: /root/.cache/pip/wheels/65/4f/66/bbda9866da446a72e206d6484cd97381cbc7859a7068541c36\n",
+            "Successfully built fpdf\n",
+            "Installing collected packages: fpdf\n",
+            "Successfully installed fpdf-1.7.2\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install fpdf\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "qFrIHInSX2HW",
+        "outputId": "fd3702f2-c3f9-4a3d-e597-4914c2cca4ef"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: fpdf in /usr/local/lib/python3.11/dist-packages (1.7.2)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from fpdf import FPDF\n",
+        "\n",
+        "pdf = FPDF()\n",
+        "pdf.set_auto_page_break(auto=True, margin=15)\n",
+        "\n",
+        "for img_path in output_images[:10]:  # up to 10 images in report\n",
+        "    pdf.add_page()\n",
+        "    pdf.set_font(\"Arial\", size=12)\n",
+        "    pdf.cell(200, 10, txt=img_path.split(\"/\")[-1], ln=1, align='C')\n",
+        "    pdf.image(img_path, x=15, y=30, w=180)\n",
+        "\n",
+        "pdf.output(\"GradCAM_Report.pdf\")\n",
+        "from google.colab import files\n",
+        "files.download(\"GradCAM_Report.pdf\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 17
+        },
+        "id": "0ogRfPVpX7P9",
+        "outputId": "d761caba-cd5e-417a-e296-47ec715a7818"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ],
+            "application/javascript": [
+              "\n",
+              "    async function download(id, filename, size) {\n",
+              "      if (!google.colab.kernel.accessAllowed) {\n",
+              "        return;\n",
+              "      }\n",
+              "      const div = document.createElement('div');\n",
+              "      const label = document.createElement('label');\n",
+              "      label.textContent = `Downloading \"${filename}\": `;\n",
+              "      div.appendChild(label);\n",
+              "      const progress = document.createElement('progress');\n",
+              "      progress.max = size;\n",
+              "      div.appendChild(progress);\n",
+              "      document.body.appendChild(div);\n",
+              "\n",
+              "      const buffers = [];\n",
+              "      let downloaded = 0;\n",
+              "\n",
+              "      const channel = await google.colab.kernel.comms.open(id);\n",
+              "      // Send a message to notify the kernel that we're ready.\n",
+              "      channel.send({})\n",
+              "\n",
+              "      for await (const message of channel.messages) {\n",
+              "        // Send a message to notify the kernel that we're ready.\n",
+              "        channel.send({})\n",
+              "        if (message.buffers) {\n",
+              "          for (const buffer of message.buffers) {\n",
+              "            buffers.push(buffer);\n",
+              "            downloaded += buffer.byteLength;\n",
+              "            progress.value = downloaded;\n",
+              "          }\n",
+              "        }\n",
+              "      }\n",
+              "      const blob = new Blob(buffers, {type: 'application/binary'});\n",
+              "      const a = document.createElement('a');\n",
+              "      a.href = window.URL.createObjectURL(blob);\n",
+              "      a.download = filename;\n",
+              "      div.appendChild(a);\n",
+              "      a.click();\n",
+              "      div.remove();\n",
+              "    }\n",
+              "  "
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ],
+            "application/javascript": [
+              "download(\"download_da908e69-02b4-438d-8c34-0b0df9b5b452\", \"GradCAM_Report.pdf\", 199377)"
+            ]
+          },
+          "metadata": {}
+        }
+      ]
+    }
+  ]
+}
